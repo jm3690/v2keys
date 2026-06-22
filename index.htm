@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V2Keys System</title>
+  
+  <!-- Tailwind CSS Engine CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  
+  <!-- React 18 Core and DOM Elements CDNs -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone to compile JSX elements in-browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons Development Script -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 antialiased">
+
+  <!-- React Root Element Container -->
+  <div id="root"></div>
+
+  <!-- Main Application Script (Must remain type="text/babel") -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Lightweight multi-pass cipher for safe client-side encryption.
+    // Used to encrypt the local admin DB and reseller configurations.
+    const crypt = (text, key, decrypting = false) => {
+      let result = '';
+      const kLen = key.length;
+      if (!key || !text) return '';
+      
+      if (decrypting) {
+        try {
+          const hexes = text.match(/.{1,2}/g) || [];
+          const bytes = hexes.map(h => parseInt(h, 16));
+          for (let i = 0; i < bytes.length; i++) {
+            const keyChar = key.charCodeAt(i % kLen);
+            const posFactor = (i * 17) % 256;
+            const decryptedByte = bytes[i] ^ keyChar ^ posFactor;
+            result += String.fromCharCode(decryptedByte);
+          }
+          return result;
+        } catch (e) {
+          return '';
+        }
+      } else {
+        for (let i = 0; i < text.length; i++) {
+          const charCode = text.charCodeAt(i);
+          const keyChar = key.charCodeAt(i % kLen);
+          const posFactor = (i * 17) % 256;
+          const encryptedByte = charCode ^ keyChar ^ posFactor;
+          result += ('0' + encryptedByte.toString(16)).slice(-2);
+        }
+        return result;
+      }
+    };
+
+    function App() {
+      // Auth & Roles[cite: 2]
+      const [passwordInput, setPasswordInput] = useState('');
+      const [role, setRole] = useState(null); // 'admin' | 'reseller' | null[cite: 2]
+      const [loginError, setLoginError] = useState('');
+      
+      // Reseller-specific states[cite: 2]
+      const [isResellerUrl, setIsResellerUrl] = useState(false);
+      const [resellerPayload, setResellerPayload] = useState('');
+      const [resellerName, setResellerName] = useState('');
+
+      // GitHub & System Settings[cite: 2]
+      const [token, setToken] = useState('');
+      const [owner, setOwner] = useState('jm3690');
+      const [repo, setRepo] = useState('v2keys');
+      const [path, setPath] = useState('keys.txt');
+      const [remember, setRemember] = useState(false);
+      
+      // Custom Base URL to solve Google usercontent sandbox bugs[cite: 2]
+      const [customBaseUrl, setCustomBaseUrl] = useState('');
+
+      // Resellers Management[cite: 2]
+      const [resellers, setResellers] = useState([]);
+      const [newResellerName, setNewResellerName] = useState('');
+      const [newResellerPass, setNewResellerPass] = useState('');
+      const [newResellerPrefix, setNewResellerPrefix] = useState('brix-');
+      const [showResellerPassIndex, setShowResellerPassIndex] = useState({});
+
+      // Key Generator State[cite: 2]
+      const [hwid, setHwid] = useState('');
+      const [generatedKey, setGeneratedKey] = useState('');
+      const [prefix, setPrefix] = useState('brix-');
+      const [keyType, setKeyType] = useState('hwid'); // 'hwid' | 'random'[cite: 2]
+
+      // Global UI Feedback[cite: 2]
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [success, setSuccess] = useState('');
+      const [copied, setCopied] = useState(false);
+
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const resellerParam = params.get('reseller');
+        if (resellerParam) {
+          setIsResellerUrl(true);
+          setResellerPayload(resellerParam);
+        }
+      }, []);
+
+      // Re-trigger icon updates whenever layout states transform
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }, [role, isResellerUrl, loginError, keyType, success, error, generatedKey]);
+
+      const handleLogin = (e) => {
+        if (e) e.preventDefault();
+        setLoginError('');
+
+        if (isResellerUrl) {
+          try {
+            const decryptedStr = crypt(resellerPayload, passwordInput, true);
+            if (!decryptedStr || !decryptedStr.includes('"val":"v2keys-validation-token"')) {
+              setLoginError('Invalid Reseller Password. Please check with your Administrator.');
+              return;
+            }
+
+            const payload = JSON.parse(decryptedStr);
+            setRole('reseller');
+            setResellerName(payload.name);
+            setPrefix(payload.prefix || 'brix-');
+            
+            setOwner(payload.owner);
+            setRepo(payload.repo);
+            setPath(payload.path);
+            setToken(payload.token);
+
+          } catch (err) {
+            setLoginError('Could not unlock reseller config. Make sure your link is complete.');
+          }
+        } else {
+          if (passwordInput === 'jmzeth123') {
+            setRole('admin');
+            
+            const savedDataEnc = localStorage.getItem('v2keys_admin_data_enc');
+            if (savedDataEnc) {
+              const decryptedData = crypt(savedDataEnc, 'jmzeth123', true);
+              if (decryptedData) {
+                try {
+                  const data = JSON.parse(decryptedData);
+                  setOwner(data.owner || 'jm3690');
+                  setRepo(data.repo || 'v2keys');
+                  setPath(data.path || 'keys.txt');
+                  setToken(data.token || '');
+                  setPrefix(data.prefix || 'brix-');
+                  setResellers(data.resellers || []);
+                  setCustomBaseUrl(data.customBaseUrl || '');
+                  setRemember(true);
+                } catch (err) {
+                  console.error("Failed to decrypt local secure database.", err);
+                }
+              }
+            }
+          } else {
+            setLoginError('Incorrect master password. Access Denied.');
+          }
+        }
+      };
+
+      const generateAndSaveKey = async () => {
+        if (!token || !owner || !repo || !path) {
+          setError('Configuration settings are missing or incomplete.');
+          return;
+        }
+        if (!hwid.trim()) {
+          setError('Please enter a user HWID.');
+          return;
+        }
+
+        setLoading(true);
+        setError('');
+        setSuccess('');
+        setGeneratedKey('');
+        setCopied(false);
+
+        try {
+          const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+          const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          };
+
+          const getRes = await fetch(url, { headers });
+          
+          if (!getRes.ok) {
+            if (getRes.status === 404) {
+               throw new Error('File not found on GitHub. Check repository owner, name, and file path.');
+            } else if (getRes.status === 401) {
+               throw new Error('Unauthorized. The GitHub access token is invalid or expired.');
+            } else {
+               throw new Error(`GitHub API Error: ${getRes.status} ${getRes.statusText}`);
+            }
+          }
+
+          const data = await getRes.json();
+          const currentSha = data.sha;
+          let currentContent = '';
+          
+          if (data.content) {
+             const base64Clean = data.content.replace(/\n/g, '');
+             currentContent = decodeURIComponent(escape(atob(base64Clean)));
+          }
+
+          let finalKey = '';
+          if (keyType === 'hwid') {
+            finalKey = `${prefix}${hwid.trim()}`;
+          } else {
+            const randomHex = Math.random().toString(16).substring(2, 10).toLowerCase() + 
+                                Math.random().toString(16).substring(2, 10).toLowerCase();
+            finalKey = `${prefix}${randomHex}`;
+          }
+          
+          const separator = currentContent.length > 0 && !currentContent.endsWith('\n') ? '\n' : '';
+          const newEntry = `${separator}${finalKey} ${hwid.trim()}\n`;
+
+          const updatedContent = btoa(unescape(encodeURIComponent(currentContent + newEntry)));
+
+          const putRes = await fetch(url, {
+            method: 'PUT',
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: `${role === 'admin' ? 'Admin' : 'Reseller (' + resellerName + ')'} added key: ${finalKey}`,
+              content: updatedContent,
+              sha: currentSha
+            })
+          });
+
+          if (!putRes.ok) {
+            const errorData = await putRes.json();
+            throw new Error(`Failed to write to GitHub: ${errorData.message}`);
+          }
+
+          setGeneratedKey(finalKey);
+          setSuccess('Successfully generated key and saved directly to GitHub!');
+          setHwid('');
+
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const copyToClipboard = () => {
+        if (!generatedKey) return;
+        navigator.clipboard.writeText(generatedKey).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }).catch(err => {
+          console.error('Failed to copy', err);
+        });
+      };
+
+      const handleLogout = () => {
+        setRole(null);
+        setPasswordInput('');
+        setLoginError('');
+        setGeneratedKey('');
+        setHwid('');
+        setError('');
+        setSuccess('');
+        if (isResellerUrl) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setIsResellerUrl(false);
+          setResellerPayload('');
+        }
+      };
+
+      // TERMINAL/LOGIN INTERFACE[cite: 2]
+      if (!role) {
+        return (
+          <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col justify-center items-center p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 space-y-6 relative overflow-hidden">
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-600 rounded-full blur-[100px] opacity-30"></div>
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-600 rounded-full blur-[100px] opacity-20"></div>
+
+              <div className="text-center relative">
+                <div className="inline-flex bg-blue-900/40 p-4 rounded-2xl border border-blue-500/30 mb-4">
+                  <i data-lucide="key" class="w-10 h-10 text-blue-400"></i>
+                </div>
+                <h1 className="text-3xl font-extrabold text-white tracking-tight">V2Keys System</h1>
+                <p className="text-slate-400 text-sm mt-1 font-medium">
+                  {isResellerUrl ? `Reseller License Portal` : `Management Control Panel`}
+                </p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4 relative">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-400 mb-1.5 flex justify-between">
+                    <span>{isResellerUrl ? 'Reseller Access Password' : 'Administrator Password'}</span>
+                    <i data-lucide="lock" class="w-4 h-4 text-slate-500"></i>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder={isResellerUrl ? "Enter your reseller password" : "Enter master administrator password"}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/80 focus:border-transparent transition-all font-mono"
+                  />
+                </div>
+
+                {loginError && (
+                  <div className="bg-red-950/40 border border-red-900/60 rounded-xl p-3 flex items-start text-red-400 text-xs gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 mt-0.5 text-red-400"></i>
+                    <p className="font-semibold">{loginError}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center transition-all hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98]"
+                >
+                  Unlock Terminal
+                  <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                </button>
+              </form>
+
+              {isResellerUrl && (
+                <div className="text-center pt-2 relative">
+                  <button 
+                    onClick={handleLogout}
+                    className="text-xs text-slate-500 hover:text-slate-300 underline transition-colors"
+                  >
+                    Go to Master Admin login
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // RESELLER INTERFACE[cite: 2]
+      if (role === 'reseller') {
+        return (
+          <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8 font-sans">
+            <div className="max-w-3xl mx-auto space-y-6">
+              
+              <div className="flex items-center justify-between border-b border-slate-850 pb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-emerald-600 p-2 rounded-lg shadow-lg">
+                    <i data-lucide="key-round" class="w-6 h-6 text-white"></i>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-white tracking-tight">Reseller Portal</h1>
+                    <p className="text-emerald-400 text-xs font-semibold">Authorized Reseller: {resellerName}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors"
+                >
+                  <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                  Disconnect
+                </button>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-white flex items-center">
+                    <i data-lucide="server" class="w-5 h-5 mr-2 text-emerald-400"></i>
+                    License Key Provisioner
+                  </h2>
+                  <p className="text-slate-400 text-xs mt-1">
+                    Keys will format automatically as <code class="text-emerald-400 font-mono">(key) (hwid)</code> and deploy instantly to host system.
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Key Prefix</label>
+                    <input type="text" disabled value={prefix} class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-500 font-mono text-sm cursor-not-allowed" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Generation Type</label>
+                    <div class="flex bg-slate-950 rounded-lg p-1 border border-slate-850">
+                      <button type="button" onClick={() => setKeyType('hwid')} class={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${keyType === 'hwid' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>Prefix + HWID</button>
+                      <button type="button" onClick={() => setKeyType('random')} class={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${keyType === 'random' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>Prefix + Random</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-slate-400 mb-1.5">Target Hardware Identifier (HWID)</label>
+                  <input type="text" value={hwid} onChange={(e) => setHwid(e.target.value)} placeholder="Enter machine raw HWID string string" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 font-mono" />
+                </div>
+
+                {error && (
+                  <div class="bg-red-950/40 border border-red-900/50 rounded-xl p-3 flex gap-2 text-red-400 text-xs font-medium">
+                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-red-400"></i>
+                    <p>{error}</p>
+                  </div>
+                )}
+
+                {success && (
+                  <div class="bg-emerald-950/40 border border-emerald-900/50 rounded-xl p-3 flex gap-2 text-emerald-400 text-xs font-medium">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0 text-emerald-400"></i>
+                    <p>{success}</p>
+                  </div>
+                )}
+
+                <button onClick={generateAndSaveKey} disabled={loading} class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center transition-all">
+                  {loading ? (
+                    <span class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Deploying Data...</span>
+                  ) : (
+                    <span class="flex items-center gap-1.5"><i data-lucide="save" class="w-4 h-4"></i> Generate & Inject License</span>
+                  )}
+                </button>
+
+                {generatedKey && (
+                  <div class="mt-4 p-4 bg-slate-950 border border-slate-850 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Output Key</p>
+                      <p class="text-white font-mono font-bold text-sm tracking-wide mt-0.5">{generatedKey}</p>
+                    </div>
+                    <button onClick={copyToClipboard} class="bg-slate-900 border border-slate-800 hover:bg-slate-850 p-2.5 rounded-lg text-slate-300 transition-colors">
+                      {copied ? <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> : <i data-lucide="copy" class="w-4 h-4"></i>}
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
