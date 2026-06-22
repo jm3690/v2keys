@@ -28,7 +28,6 @@
     const { useState, useEffect } = React;
 
     // Lightweight multi-pass cipher for safe client-side encryption.
-    // Used to encrypt the local admin DB and reseller configurations.
     const crypt = (text, key, decrypting = false) => {
       let result = '';
       const kLen = key.length;
@@ -61,40 +60,39 @@
     };
 
     function App() {
-      // Auth & Roles[cite: 2]
+      // Auth & Roles
       const [passwordInput, setPasswordInput] = useState('');
-      const [role, setRole] = useState(null); // 'admin' | 'reseller' | null[cite: 2]
+      const [role, setRole] = useState(null); // 'admin' | 'reseller' | null
       const [loginError, setLoginError] = useState('');
       
-      // Reseller-specific states[cite: 2]
+      // Reseller-specific states
       const [isResellerUrl, setIsResellerUrl] = useState(false);
       const [resellerPayload, setResellerPayload] = useState('');
       const [resellerName, setResellerName] = useState('');
 
-      // GitHub & System Settings[cite: 2]
+      // GitHub & System Settings
       const [token, setToken] = useState('');
       const [owner, setOwner] = useState('jm3690');
       const [repo, setRepo] = useState('v2keys');
       const [path, setPath] = useState('keys.txt');
       const [remember, setRemember] = useState(false);
       
-      // Custom Base URL to solve Google usercontent sandbox bugs[cite: 2]
+      // Custom Base URL to solve Google usercontent sandbox bugs
       const [customBaseUrl, setCustomBaseUrl] = useState('');
 
-      // Resellers Management[cite: 2]
+      // Resellers Management
       const [resellers, setResellers] = useState([]);
       const [newResellerName, setNewResellerName] = useState('');
       const [newResellerPass, setNewResellerPass] = useState('');
       const [newResellerPrefix, setNewResellerPrefix] = useState('brix-');
-      const [showResellerPassIndex, setShowResellerPassIndex] = useState({});
 
-      // Key Generator State[cite: 2]
+      // Key Generator State
       const [hwid, setHwid] = useState('');
       const [generatedKey, setGeneratedKey] = useState('');
       const [prefix, setPrefix] = useState('brix-');
-      const [keyType, setKeyType] = useState('hwid'); // 'hwid' | 'random'[cite: 2]
+      const [keyType, setKeyType] = useState('hwid'); // 'hwid' | 'random'
 
-      // Global UI Feedback[cite: 2]
+      // Global UI Feedback
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState('');
       const [success, setSuccess] = useState('');
@@ -109,7 +107,7 @@
         }
       }, []);
 
-      // Re-trigger icon updates whenever layout states transform
+      // Re-trigger icon updates cleanly when interface swaps
       useEffect(() => {
         if (window.lucide) {
           window.lucide.createIcons();
@@ -283,7 +281,7 @@
         }
       };
 
-      // TERMINAL/LOGIN INTERFACE[cite: 2]
+      // LOGIN INTERFACE
       if (!role) {
         return (
           <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col justify-center items-center p-4">
@@ -293,11 +291,11 @@
 
               <div className="text-center relative">
                 <div className="inline-flex bg-blue-900/40 p-4 rounded-2xl border border-blue-500/30 mb-4">
-                  <i data-lucide="key" class="w-10 h-10 text-blue-400"></i>
+                  <i data-lucide="key" className="w-10 h-10 text-blue-400"></i>
                 </div>
                 <h1 className="text-3xl font-extrabold text-white tracking-tight">V2Keys System</h1>
                 <p className="text-slate-400 text-sm mt-1 font-medium">
-                  {isResellerUrl ? `Reseller License Portal` : `Management Control Panel`}
+                  {isResellerUrl ? "Reseller License Portal" : "Management Control Panel"}
                 </p>
               </div>
 
@@ -305,7 +303,7 @@
                 <div>
                   <label className="block text-sm font-semibold text-slate-400 mb-1.5 flex justify-between">
                     <span>{isResellerUrl ? 'Reseller Access Password' : 'Administrator Password'}</span>
-                    <i data-lucide="lock" class="w-4 h-4 text-slate-500"></i>
+                    <i data-lucide="lock" className="w-4 h-4 text-slate-500"></i>
                   </label>
                   <input
                     type="password"
@@ -319,7 +317,7 @@
 
                 {loginError && (
                   <div className="bg-red-950/40 border border-red-900/60 rounded-xl p-3 flex items-start text-red-400 text-xs gap-2">
-                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 mt-0.5 text-red-400"></i>
+                    <i data-lucide="alert-circle" className="w-4 h-4 shrink-0 mt-0.5 text-red-400"></i>
                     <p className="font-semibold">{loginError}</p>
                   </div>
                 )}
@@ -329,7 +327,7 @@
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center transition-all hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98]"
                 >
                   Unlock Terminal
-                  <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                  <i data-lucide="arrow-right" className="w-4 h-4 ml-2"></i>
                 </button>
               </form>
 
@@ -348,7 +346,7 @@
         );
       }
 
-      // RESELLER INTERFACE[cite: 2]
+      // RESELLER INTERFACE
       if (role === 'reseller') {
         return (
           <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8 font-sans">
@@ -357,7 +355,7 @@
               <div className="flex items-center justify-between border-b border-slate-850 pb-4">
                 <div className="flex items-center space-x-3">
                   <div className="bg-emerald-600 p-2 rounded-lg shadow-lg">
-                    <i data-lucide="key-round" class="w-6 h-6 text-white"></i>
+                    <i data-lucide="key-round" className="w-6 h-6 text-white"></i>
                   </div>
                   <div>
                     <h1 className="text-xl font-bold text-white tracking-tight">Reseller Portal</h1>
@@ -368,7 +366,7 @@
                   onClick={handleLogout}
                   className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors"
                 >
-                  <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                  <i data-lucide="log-out" className="w-3.5 h-3.5"></i>
                   Disconnect
                 </button>
               </div>
@@ -376,63 +374,63 @@
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
                 <div>
                   <h2 className="text-lg font-semibold text-white flex items-center">
-                    <i data-lucide="server" class="w-5 h-5 mr-2 text-emerald-400"></i>
+                    <i data-lucide="server" className="w-5 h-5 mr-2 text-emerald-400"></i>
                     License Key Provisioner
                   </h2>
                   <p className="text-slate-400 text-xs mt-1">
-                    Keys will format automatically as <code class="text-emerald-400 font-mono">(key) (hwid)</code> and deploy instantly to host system.
+                    Keys will format automatically as <code className="text-emerald-400 font-mono">(key) (hwid)</code> and deploy instantly to host system.
                   </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-1">Key Prefix</label>
-                    <input type="text" disabled value={prefix} class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-500 font-mono text-sm cursor-not-allowed" />
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Key Prefix</label>
+                    <input type="text" disabled value={prefix} className="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2 text-slate-500 font-mono text-sm cursor-not-allowed" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-1">Generation Type</label>
-                    <div class="flex bg-slate-950 rounded-lg p-1 border border-slate-850">
-                      <button type="button" onClick={() => setKeyType('hwid')} class={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${keyType === 'hwid' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>Prefix + HWID</button>
-                      <button type="button" onClick={() => setKeyType('random')} class={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${keyType === 'random' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>Prefix + Random</button>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Generation Type</label>
+                    <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-850">
+                      <button type="button" onClick={() => setKeyType('hwid')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${keyType === 'hwid' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>Prefix + HWID</button>
+                      <button type="button" onClick={() => setKeyType('random')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${keyType === 'random' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'}`}>Prefix + Random</button>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-sm font-semibold text-slate-400 mb-1.5">Target Hardware Identifier (HWID)</label>
-                  <input type="text" value={hwid} onChange={(e) => setHwid(e.target.value)} placeholder="Enter machine raw HWID string string" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 font-mono" />
+                  <label className="block text-sm font-semibold text-slate-400 mb-1.5">Target Hardware Identifier (HWID)</label>
+                  <input type="text" value={hwid} onChange={(e) => setHwid(e.target.value)} placeholder="Enter machine raw HWID string" className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/80 font-mono" />
                 </div>
 
                 {error && (
-                  <div class="bg-red-950/40 border border-red-900/50 rounded-xl p-3 flex gap-2 text-red-400 text-xs font-medium">
-                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-red-400"></i>
+                  <div className="bg-red-950/40 border border-red-900/50 rounded-xl p-3 flex gap-2 text-red-400 text-xs font-medium">
+                    <i data-lucide="alert-circle" className="w-4 h-4 shrink-0 text-red-400"></i>
                     <p>{error}</p>
                   </div>
                 )}
 
                 {success && (
-                  <div class="bg-emerald-950/40 border border-emerald-900/50 rounded-xl p-3 flex gap-2 text-emerald-400 text-xs font-medium">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0 text-emerald-400"></i>
+                  <div className="bg-emerald-950/40 border border-emerald-900/50 rounded-xl p-3 flex gap-2 text-emerald-400 text-xs font-medium">
+                    <i data-lucide="check-circle-2" className="w-4 h-4 shrink-0 text-emerald-400"></i>
                     <p>{success}</p>
                   </div>
                 )}
 
-                <button onClick={generateAndSaveKey} disabled={loading} class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center transition-all">
+                <button onClick={generateAndSaveKey} disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white font-semibold rounded-xl py-3.5 flex items-center justify-center transition-all">
                   {loading ? (
-                    <span class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Deploying Data...</span>
+                    <span className="flex items-center gap-2"><i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i> Deploying Data...</span>
                   ) : (
-                    <span class="flex items-center gap-1.5"><i data-lucide="save" class="w-4 h-4"></i> Generate & Inject License</span>
+                    <span className="flex items-center gap-1.5"><i data-lucide="save" className="w-4 h-4"></i> Generate & Inject License</span>
                   )}
                 </button>
 
                 {generatedKey && (
-                  <div class="mt-4 p-4 bg-slate-950 border border-slate-850 rounded-xl flex items-center justify-between">
+                  <div className="mt-4 p-4 bg-slate-950 border border-slate-850 rounded-xl flex items-center justify-between">
                     <div>
-                      <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Output Key</p>
-                      <p class="text-white font-mono font-bold text-sm tracking-wide mt-0.5">{generatedKey}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Output Key</p>
+                      <p className="text-white font-mono font-bold text-sm tracking-wide mt-0.5">{generatedKey}</p>
                     </div>
-                    <button onClick={copyToClipboard} class="bg-slate-900 border border-slate-800 hover:bg-slate-850 p-2.5 rounded-lg text-slate-300 transition-colors">
-                      {copied ? <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> : <i data-lucide="copy" class="w-4 h-4"></i>}
+                    <button onClick={copyToClipboard} className="bg-slate-900 border border-slate-800 hover:bg-slate-850 p-2.5 rounded-lg text-slate-300 transition-colors">
+                      {copied ? <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-400"></i> : <i data-lucide="copy" className="w-4 h-4"></i>}
                     </button>
                   </div>
                 )}
@@ -442,6 +440,9 @@
           </div>
         );
       }
+      
+      // Default fallback component to keep React from returning undefined if role changes unexpectedly
+      return <div className="p-8 text-center text-xs text-slate-600">Terminal offline.</div>;
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
